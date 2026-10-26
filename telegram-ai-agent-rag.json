@@ -1,0 +1,455 @@
+{
+  "name": "telegram-ai-agent-rag",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -912,
+        -32
+      ],
+      "id": "31f4ba95-08c6-420a-a509-57e704e8aa07",
+      "name": "Telegram Trigger",
+      "webhookId": "02037093-51a1-4aa7-af83-025376133a84",
+      "notesInFlow": false,
+      "alwaysOutputData": false,
+      "executeOnce": false,
+      "retryOnFail": false,
+      "credentials": {
+        "telegramApi": {
+          "id": "K7vD9cStV2ks1EZ7",
+          "name": "Telegram account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('Telegram Trigger').item.json.message.text }}",
+        "options": {
+          "systemMessage": "# ROLE & IDENTITY\nYou are the Official AI Receptionist and Lead Qualification Agent for \"AutomateAI Morocco\", specializing in AI agents, automation, and workflow engineering.\nYour tone is professional, warm, helpful, persuasive, and polite.\n\n# KNOWLEDGE & TOOLS\n1. `automateai_knowledge_base`: Query this Pinecone tool for AutomateAI Morocco's services, pricing, process, and details before answering.\n2. `create_calendar_event`: Use this Google Calendar tool to create and confirm consultation meetings once date, time, and client details are agreed upon.\n3. Use save informations tool to save the client name, phone, lead score, summary with this condition : save a client information just in one row and if you want to update something updated in the same row (based on the client name)\n4. Use the availability_checking tool to check the availability before you add a new event to google calandar\n\n# CURRENT TIME CONTEXT\n- Current Date and Time: {{ $now.setZone('Africa/Casablanca').toFormat('yyyy-MM-dd   HH:mm:ss') }}\n- Timezone: Africa/Casablanca\n- Always calculate tomorrow, next Monday, and other relative dates based on this exact current date and time.\n\n# LANGUAGE & COMMUNICATION (CRITICAL)\n1. ALWAYS detect the language of the user's VERY LAST message and respond in the EXACT same language.\n2. If the user writes in English -> Respond 100% in Professional English.\n3. If the user writes in Darija -> Respond 100% in Natural Moroccan Darija.\n4. If the user writes in French -> Respond 100% in Professional French.\n5. Do NOT carry over the language from previous messages if the user switches languages.\n\n# CONVERSATIONAL FLOW & APPOINTMENT NEGOTIATION\n1. **Answer & Qualify**: Answer directly using `automateai_knowledge_base`. Ask about their business/project needs.\n2. **Propose Call**: Propose a brief 15-minute consultation call.\n3. **Negotiate Date & Time**: Ask for preferred day and exact time slot.\n4. **Collect Details**: Ensure you have Client Name, Email, and Phone before booking.\n5. **Execute Calendar Booking**: Call `create_calendar_event` once confirmed, then send meeting details.\n\n# RESPONSE RULES & FORMATTING\n1. Use clean Markdown (Bold, Bullet points, Emojis 🤖, 🚀, 📅, ⏰).\n2. For out-of-scope services (SEO, Graphic Design, Ads), explain focus on AI Agents & Automations.\n\n# CRITICAL TOOL USE RULES\n1. When you call a tool (like `saveinformations` or `create_calendar_event`), execute it silently in the background.\n2. NEVER output internal system messages or tool call details (e.g., \"Calling saveinformations with input...\").\n3. ALWAYS generate a helpful, natural user-facing response in the EXACT same language as the user input (English, Darija, French, etc.).\n\n## CRITICAL OUTPUT INSTRUCTION:\nYou MUST respond ONLY with a raw JSON object. Do NOT wrap it in markdown backticks (no ```json). Do NOT add extra text outside the JSON.\n\nStrict JSON format:\n{\n  \"reply\": \"Your message in the EXACT same language as the user's last message\",\n  \"lead_score\": \"Hot/Warm/Cold\",\n  \"customer_phone\": \"\",\n  \"summary\": \"Brief summary in English\"\n}"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        -224,
+        -32
+      ],
+      "id": "0b8c7901-81c0-4396-a789-6693d8066bd7",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "chatId": "6909674036",
+        "text": "={{ $json.reply }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        768,
+        -32
+      ],
+      "id": "12765b9f-edf5-478f-89e5-13e7272d07a0",
+      "name": "Send a text message",
+      "webhookId": "7a7c6632-d0e1-4c5c-af45-1642e442edb3",
+      "credentials": {
+        "telegramApi": {
+          "id": "K7vD9cStV2ks1EZ7",
+          "name": "Telegram account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "=={{ $json.message.chat.id }}",
+        "contextWindowLength": 10
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.4,
+      "position": [
+        -704,
+        352
+      ],
+      "id": "b90ac731-5a6f-4742-9240-9e7e307b3866",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "toolDescription": "Use this tool to search and retrieve accurate information about AutomateAI Morocco agency, services, pricing packages, contact details, and booking procedures.",
+        "pineconeIndex": {
+          "__rl": true,
+          "value": "chatbottele",
+          "mode": "list",
+          "cachedResultName": "chatbottele"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStorePinecone",
+      "typeVersion": 1.3,
+      "position": [
+        160,
+        368
+      ],
+      "id": "d5940700-0ac8-4bb7-9e1d-75162ca79e2b",
+      "name": "Pinecone Vector Store",
+      "credentials": {
+        "pineconeApi": {
+          "id": "8gB39fURJ2f9rUXl",
+          "name": "Pinecone account 2"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.embeddingsGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        160,
+        544
+      ],
+      "id": "e9fe7b06-c425-4d6f-8d40-23f414337a27",
+      "name": "Embeddings Google Gemini",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "Tajd35DUDegHbXvg",
+          "name": "Google Gemini(PaLM) Api account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Kunin ang raw output mula sa AI Agent\nlet rawOutput = $input.first().json.output || \"\";\n\n// Kung ang output ay naglalaman ng tool calling log, alisin ito\nif (rawOutput.includes(\"Calling \") && rawOutput.includes(\"with input:\")) {\n  // Extract JSON string after the tool call log\n  let jsonStart = rawOutput.indexOf(\"{\");\n  if (jsonStart !== -1) {\n    rawOutput = rawOutput.substring(jsonStart);\n  }\n}\n\n// Subukang i-extract ang JSON gamit ang Regex\nlet jsonMatch = rawOutput.match(/\\{[\\s\\S]*\\}/);\nlet parsedData = {};\n\nif (jsonMatch) {\n  try {\n    parsedData = JSON.parse(jsonMatch[0]);\n  } catch (e) {\n    parsedData = {};\n  }\n}\n\nlet replyText = parsedData.reply || rawOutput.replace(/```json/g, '').replace(/```/g, '').trim();\nlet leadScore = parsedData.lead_score || \"Warm\";\nlet phone = parsedData.customer_phone || \"\";\nlet summaryText = parsedData.summary || \"Interaction recorded\";\n\n// Ayusin ang new lines para sa Telegram\nreplyText = replyText.replace(/\\\\n/g, '\\n');\n\nreturn [{\n  json: {\n    reply: replyText,\n    lead_score: leadScore,\n    customer_phone: phone,\n    summary: summaryText,\n    telegram_chat_id: $(\"Telegram Trigger\").first().json.message.chat.id\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        400,
+        -32
+      ],
+      "id": "41206459-948a-470b-aac5-0f7448de156a",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "# Use this tool to schedule and book a consultation meeting or call with a client in Google Calendar after confirming their preferred date, time, and contact info (email/phone).\n# CURRENT TIME CONTEXT\n- Current Date and Time: {{ $now.setZone('Africa/Casablanca').toFormat('yyyy-MM-dd HH:mm:ss') }}\n- Timezone: Africa/Casablanca\n- Always calculate tomorrow, next Monday, and other relative dates based on this exact current date and time.",
+        "calendar": {
+          "__rl": true,
+          "value": "mohamedoujabbour.ge@gmail.com",
+          "mode": "list",
+          "cachedResultName": "mohamedoujabbour.ge@gmail.com"
+        },
+        "start": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Start', ``, 'string') }}",
+        "end": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('End', ``, 'string') }}",
+        "additionalFields": {
+          "description": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Description', ``, 'string') }}"
+        }
+      },
+      "type": "n8n-nodes-base.googleCalendarTool",
+      "typeVersion": 1.3,
+      "position": [
+        -528,
+        352
+      ],
+      "id": "d2db47dc-cf72-4c72-9731-ea73b4b836bf",
+      "name": "create_calendar",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "NWbV5KU9ZXRoS6n5",
+          "name": "Google Calendar account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "# use this tool to save clients informations \n# when you get a new information about an existante client dont append a new row, just update the existante one  ",
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "1MsTSMh_w1qWPWQWTYy8RTl9A1DKTZ95raAog2FJGqoQ",
+          "mode": "list",
+          "cachedResultName": "chatbot project ",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1MsTSMh_w1qWPWQWTYy8RTl9A1DKTZ95raAog2FJGqoQ/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1MsTSMh_w1qWPWQWTYy8RTl9A1DKTZ95raAog2FJGqoQ/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "client Phone": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('client_Phone__using_to_match_', ``, 'string') }}",
+            "client name": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('client_name', ``, 'string') }}",
+            "Lead Score": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Lead_Score', ``, 'string') }}",
+            "Summary": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Summary', ``, 'string') }}",
+            "chat id ": "={{ $json.update_id }}"
+          },
+          "matchingColumns": [
+            "chat id "
+          ],
+          "schema": [
+            {
+              "id": "chat id ",
+              "displayName": "chat id ",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "client name",
+              "displayName": "client name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "client Phone",
+              "displayName": "client Phone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Lead Score",
+              "displayName": "Lead Score",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Summary",
+              "displayName": "Summary",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheetsTool",
+      "typeVersion": 4.7,
+      "position": [
+        -128,
+        352
+      ],
+      "id": "ccf68f6c-9e93-48f2-abc0-4540dcde1888",
+      "name": "save informations",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "GYCqxyXSM7HunHzD",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.8-flash",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        -896,
+        352
+      ],
+      "id": "f3649f2e-9ad3-4897-aa5a-c6f5363612d1",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "Tajd35DUDegHbXvg",
+          "name": "Google Gemini(PaLM) Api account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "use this tool to check the availability. to check if the time requested is free or no",
+        "operation": "getAll",
+        "calendar": {
+          "__rl": true,
+          "value": "mohamedoujabbour.ge@gmail.com",
+          "mode": "list",
+          "cachedResultName": "mohamedoujabbour.ge@gmail.com"
+        },
+        "returnAll": true,
+        "timeMin": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('After', ``, 'string') }}",
+        "timeMax": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Before', ``, 'string') }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleCalendarTool",
+      "typeVersion": 1.3,
+      "position": [
+        -336,
+        352
+      ],
+      "id": "463b6819-b513-448b-95d0-8a7e73c7dfc5",
+      "name": "availability_checking",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "NWbV5KU9ZXRoS6n5",
+          "name": "Google Calendar account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pinecone Vector Store": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings Google Gemini": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Pinecone Vector Store",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Send a text message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "create_calendar": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "save informations": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "availability_checking": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "fdd4cd73-57d9-446a-8188-08d5c0ad759d",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "32996da728c34c04920add68181222108327f4af18238744fe78bfbd87141ec1"
+  },
+  "nodeGroups": [],
+  "id": "atVLESp6k5WKWuU9",
+  "tags": []
+}
