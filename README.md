@@ -5,7 +5,7 @@ A robust, end-to-end automated AI agent built in **n8n** that functions as an in
 ---
 
 ## 📸 Workflow Architecture
-![Workflow Architecture](./workflow-architecture.png)
+![Workflow Architecture](./telegram-ai-agent-rag.png)
 
 ---
 
